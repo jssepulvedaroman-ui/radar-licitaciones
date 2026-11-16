@@ -36,6 +36,7 @@ jobs:
           MP_TICKET: ${{ secrets.MP_TICKET }}
           DIAS: ${{ github.event.inputs.dias }}
           MAX_MINUTOS: "240"
+          PYTHONUNBUFFERED: "1"
 
       - name: Guardar datos en el repositorio
         if: always()
@@ -44,4 +45,5 @@ jobs:
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
           git add data
           git diff --cached --quiet || git commit -m "Datos actualizados $(date -u +%F)"
+          git pull --rebase --autostash origin main
           git push

@@ -158,6 +158,12 @@ class Radar:
         self.licitaciones = {l["codigo"]: l for l in lic.get("licitaciones", [])}
         self.dias_revisados = set(est.get("dias_revisados", []))
         self.descartadas = set(est.get("descartadas", []))
+        # Prefijo del código (unidad de compra) -> True si está en la zona configurada.
+        # Permite omitir sin consultar el detalle las licitaciones de unidades ya vistas fuera de la zona.
+        self.unidades = est.get("unidades", {})
+        self.clave_filtros = json.dumps([self.regiones, self.organismos])
+        if est.get("clave_filtros") != self.clave_filtros:
+            self.unidades, self.descartadas = {}, set()  # cambiaron los filtros: reevaluar todo
 
     def calza_nombre(self, nombre) -> bool:
         n = normalizar(nombre)
@@ -172,12 +178,21 @@ class Radar:
             return False
         return not self.organismos or any(x in org for x in self.organismos)
 
+    @staticmethod
+    def unidad(codigo: str) -> str:
+        return str(codigo or "").split("-")[0]
+
+    def omitir(self, codigo: str) -> bool:
+        return codigo in self.descartadas or self.unidades.get(self.unidad(codigo)) is False
+
     def procesar(self, codigo: str, origen: str) -> bool:
         d = self.api.detalle(codigo)
         if not d:
             return False
         r = aplanar(d, self.licitaciones.get(codigo), origen)
-        if self.calza_comprador(r):
+        en_zona = self.calza_comprador(r)
+        self.unidades[self.unidad(codigo)] = en_zona
+        if en_zona:
             self.licitaciones[codigo] = r
             return True
         self.licitaciones.pop(codigo, None)
@@ -193,7 +208,8 @@ class Radar:
             "licitaciones": orden,
         }, ensure_ascii=False, separators=(",", ":")), "utf-8")
         ARCHIVO_ESTADO.write_text(json.dumps({
-            "dias_revisados": sorted(self.dias_revisados), "descartadas": sorted(self.descartadas),
+            "clave_filtros": self.clave_filtros, "dias_revisados": sorted(self.dias_revisados),
+            "unidades": self.unidades, "descartadas": sorted(self.descartadas),
         }, ensure_ascii=False, indent=0), "utf-8")
 
     def vigilar(self):
@@ -201,7 +217,7 @@ class Radar:
         activas = self.api.activas()
         codigos_activos = {l.get("CodigoExterno") for l in activas}
         cand = [l["CodigoExterno"] for l in activas
-                if self.calza_nombre(l.get("Nombre")) and l.get("CodigoExterno") not in self.descartadas]
+                if self.calza_nombre(l.get("Nombre")) and not self.omitir(l.get("CodigoExterno"))]
         print(f"  {len(activas)} activas en el país, {len(cand)} calzan con las palabras clave")
         n = 0
         for i, c in enumerate(cand, 1):
@@ -229,7 +245,7 @@ class Radar:
                 break
             for l in self.api.por_fecha(dia, "adjudicada"):
                 c = l.get("CodigoExterno")
-                if not self.calza_nombre(l.get("Nombre")) or c in self.descartadas:
+                if not self.calza_nombre(l.get("Nombre")) or self.omitir(c):
                     continue
                 if self.licitaciones.get(c, {}).get("estado_cod") == 8:
                     continue
