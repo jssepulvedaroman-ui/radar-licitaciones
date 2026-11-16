@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de Licitaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fondo:#F3F6F5; --papel:#FFFFFF; --tinta:#17312B; --suave:#5B6D68; --tenue:#8A9A95;
+  --linea:#D8E0DD; --linea-suave:#E8EEEC; --acento:#1F6F5C; --acento-claro:#E3F0EC;
+  --urgente:#C2410C; --urgente-claro:#FCEBDD; --pronto:#B7791F; --pronto-claro:#FBF1DC;
+  --ok:#2E7D4F; --ok-claro:#E2F2E8;
+  --r-s:4px; --r-m:8px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--tinta);font-family:"Archivo",system-ui,sans-serif;
+  font-size:15px;line-height:1.5;font-variation-settings:"wdth" 100}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--acento)}
+:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.ancho{font-variation-settings:"wdth" 118}
+.envoltura{max-width:1240px;margin:0 auto;padding:0 24px}
+
+/* encabezado */
+header.barra{background:var(--tinta);color:#EAF2EF}
+.barra .envoltura{display:flex;align-items:center;gap:20px;min-height:64px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.marca{font-size:21px;font-weight:750;letter-spacing:-.01em;font-variation-settings:"wdth" 120;margin:0}
+.marca small{display:block;font-size:13px;font-weight:400;color:#A9C2BA;font-variation-settings:"wdth" 100;letter-spacing:0}
+.barra .espacio{flex:1}
+.actualizado{font-size:13px;color:#A9C2BA}
+.btn-claro{background:transparent;border:1px solid #3E5E56;color:#EAF2EF;border-radius:var(--r-s);padding:7px 12px;cursor:pointer}
+.btn-claro:hover{background:#23443C}
+
+/* franja de cierres */
+.franja{background:var(--papel);border-bottom:1px solid var(--linea)}
+.franja .envoltura{padding-top:22px;padding-bottom:18px}
+.franja h2{font-size:28px;line-height:1.15;margin:0 0 4px;font-weight:750;font-variation-settings:"wdth" 118;letter-spacing:-.015em}
+.franja p.bajada{margin:0 0 18px;color:var(--suave);max-width:70ch}
+.calendario{position:relative;display:grid;grid-template-columns:repeat(31,1fr);gap:3px;align-items:end;min-height:104px}
+.dia{display:flex;flex-direction:column-reverse;align-items:stretch;gap:3px;min-height:74px;position:relative}
+.dia .base{height:3px;background:var(--linea);border-radius:2px}
+.dia.finde .base{background:var(--linea-suave)}
+.dia.hoy .base{background:var(--tinta);height:4px}
+.ficha-cal{height:14px;border-radius:3px;background:var(--acento);border:0;padding:0;cursor:pointer}
+.ficha-cal.u{background:var(--urgente)} .ficha-cal.p{background:var(--pronto)}
+.ficha-cal.nueva{box-shadow:inset 0 0 0 2px rgba(255,255,255,.65)}
+.ficha-cal:hover,.ficha-cal:focus-visible{filter:brightness(1.15);outline-offset:1px}
+.etiq-dia{position:absolute;bottom:-20px;left:0;font-size:11px;color:var(--tenue);white-space:nowrap}
+.dia.hoy .etiq-dia{color:var(--tinta);font-weight:700}
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;margin-top:30px;font-size:13px;color:var(--suave)}
+.leyenda i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+.globo{position:fixed;z-index:30;max-width:320px;background:var(--tinta);color:#fff;padding:10px 12px;border-radius:var(--r-m);
+  font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(23,49,43,.25)}
+.globo b{display:block;font-size:14px;margin-bottom:2px}
+
+/* navegación */
+nav.pestanas{position:sticky;top:0;z-index:20;background:var(--fondo);border-bottom:1px solid var(--linea)}
+nav.pestanas .envoltura{display:flex;gap:4px;overflow-x:auto}
+nav.pestanas a{display:block;padding:14px 16px 12px;text-decoration:none;color:var(--suave);font-weight:600;
+  border-bottom:3px solid transparent;white-space:nowrap}
+nav.pestanas a[aria-current="page"]{color:var(--tinta);border-bottom-color:var(--acento)}
+nav.pestanas a .cuenta{font-weight:500;color:var(--tenue);margin-left:6px}
+
+main.envoltura{padding-top:26px;padding-bottom:60px}
+.vista[hidden]{display:none}
+.controles{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.controles input[type=search],.controles select{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-s);padding:9px 12px;min-width:0}
+.controles input[type=search]{flex:1 1 260px}
+.controles select{flex:0 0 auto;max-width:100%}
+.controles label.chk{display:flex;gap:6px;align-items:center;color:var(--suave);font-size:14px;cursor:pointer}
+.resumen{color:var(--suave);margin:0 0 14px}
+.resumen strong{color:var(--tinta)}
+
+/* filas de oportunidades */
+.lista{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-m)}
+.op{display:grid;grid-template-columns:86px 1fr auto;gap:18px;padding:16px 18px;border-top:1px solid var(--linea-suave);align-items:start}
+.op:first-child{border-top:0}
+.plazo{text-align:left}
+.plazo .n{display:block;font-size:40px;line-height:.95;font-weight:780;font-variation-settings:"wdth" 122;letter-spacing:-.02em}
+.plazo .t{font-size:12px;color:var(--suave)}
+.plazo.u .n{color:var(--urgente)} .plazo.p .n{color:var(--pronto)} .plazo.ok .n{color:var(--acento)}
+.op h3{margin:0 0 3px;font-size:16px;line-height:1.3;font-weight:650}
+.op .org{color:var(--suave);font-size:14px}
+.datos{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:13px;color:var(--suave)}
+.datos span strong{color:var(--tinta);font-weight:600}
+.marca-nueva{display:inline-block;font-size:12px;font-weight:650;color:var(--ok);background:var(--ok-claro);padding:1px 7px;border-radius:10px;margin-left:8px;vertical-align:2px}
+.visita-alerta{color:var(--urgente)}
+.acciones{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:132px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:var(--r-s);border:1px solid var(--linea);
+  background:var(--papel);cursor:pointer;text-decoration:none;color:var(--tinta);font-size:14px;font-weight:550;white-space:nowrap}
+.btn:hover{border-color:var(--tenue)}
+.btn.primario{background:var(--acento);border-color:var(--acento);color:#fff}
+.btn.primario:hover{background:#185948}
+.btn.hecho{background:var(--acento-claro);border-color:var(--acento-claro);color:var(--acento);cursor:default}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+
+/* referencias */
+.dos-col{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:22px;align-items:start}
+.panel{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-m);padding:18px 20px}
+.panel h3{margin:0 0 4px;font-size:17px;font-weight:700}
+.panel .nota{margin:0 0 14px;color:var(--suave);font-size:14px}
+.titular-ref{font-size:22px;line-height:1.3;font-weight:650;margin:0 0 18px;max-width:62ch;font-variation-settings:"wdth" 108}
+.titular-ref .cifra{font-variation-settings:"wdth" 125;font-weight:800;color:var(--acento)}
+.barras{display:flex;flex-direction:column;gap:12px}
+.barra-fila{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:4px 10px;font-size:14px}
+.barra-fila .nombre{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra-fila .valor{text-align:right;font-weight:650}
+.barra-fila .pista{grid-column:1/-1;height:8px;background:var(--linea-suave);border-radius:4px;position:relative;overflow:hidden}
+.barra-fila .relleno{position:absolute;inset:0 auto 0 0;background:var(--acento);border-radius:4px}
+.barra-fila .sub{grid-column:1/-1;font-size:12px;color:var(--tenue);margin-top:-2px}
+.marca-100{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tinta);opacity:.35}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:650;color:var(--suave);font-size:13px;padding:10px 10px;border-bottom:1px solid var(--linea);white-space:nowrap;background:var(--papel);position:sticky;top:0;z-index:1}
+td{padding:10px 10px;border-bottom:1px solid var(--linea-suave);vertical-align:top}
+td.der,th.der{text-align:right}
+tr.clic{cursor:pointer} tr.clic:hover td{background:#F8FBFA}
+tr.detalle td{background:#F8FBFA;padding:6px 10px 16px}
+.items{width:100%;font-size:13px}
+.items td,.items th{border-color:var(--linea);position:static;background:transparent;padding:6px 8px}
+.tabla-caja{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-m);overflow:auto;max-height:70vh}
+.pildora{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pildora.verde{background:var(--ok-claro);color:var(--ok)} .pildora.naranja{background:var(--urgente-claro);color:var(--urgente)}
+.pildora.ambar{background:var(--pronto-claro);color:var(--pronto)} .pildora.gris{background:var(--linea-suave);color:var(--suave)}
+.cel-nombre{max-width:440px}
+.cel-nombre .org{display:block;color:var(--suave);font-size:13px}
+
+/* competidores */
+.rank{display:grid;grid-template-columns:28px minmax(0,1fr) 120px;gap:8px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--linea-suave)}
+.rank:first-of-type{border-top:0}
+.rank .pos{color:var(--tenue);font-weight:650}
+.rank .quien{font-weight:620}
+.rank .quien small{display:block;color:var(--suave);font-weight:400;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .cuanto{text-align:right;font-weight:650}
+.rank .cuanto small{display:block;color:var(--suave);font-weight:400;font-size:12px}
+.rank .pista{grid-column:2/-1;height:6px;background:var(--linea-suave);border-radius:3px;position:relative}
+.rank .relleno{position:absolute;inset:0 auto 0 0;background:var(--tinta);border-radius:3px;opacity:.75}
+
+/* cartera */
+.cifras{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--linea);border:1px solid var(--linea);border-radius:var(--r-m);overflow:hidden;margin-bottom:18px}
+.cifras div{background:var(--papel);padding:14px 16px}
+.cifras b{display:block;font-size:24px;font-weight:760;font-variation-settings:"wdth" 118;line-height:1.1}
+.cifras span{font-size:13px;color:var(--suave)}
+.cartera input,.cartera select{width:100%;border:1px solid transparent;background:transparent;border-radius:var(--r-s);padding:6px 7px;min-width:90px}
+.cartera select{min-width:128px}
+.cartera input:hover,.cartera select:hover{border-color:var(--linea)}
+.cartera input:focus,.cartera select:focus{border-color:var(--acento);background:#fff;outline:none}
+.cartera td{padding:6px 6px;vertical-align:middle}
+.cartera .monto{min-width:120px;text-align:right}
+.btn-x{border:0;background:none;color:var(--tenue);cursor:pointer;font-size:18px;line-height:1;padding:4px 8px;border-radius:var(--r-s)}
+.btn-x:hover{color:var(--urgente);background:var(--urgente-claro)}
+.vacio{padding:40px 24px;text-align:left;color:var(--suave)}
+.vacio h3{color:var(--tinta);margin:0 0 6px;font-size:18px}
+.aviso{background:var(--pronto-claro);color:#6B4A12;border-radius:var(--r-m);padding:12px 16px;margin-bottom:16px;font-size:14px}
+.aviso.error{background:var(--urgente-claro);color:#7A2A08}
+
+/* diálogo */
+dialog{border:0;border-radius:12px;padding:0;max-width:520px;width:calc(100% - 32px);color:var(--tinta);box-shadow:0 20px 60px rgba(23,49,43,.3)}
+dialog::backdrop{background:rgba(23,49,43,.45)}
+dialog form{padding:22px 24px}
+dialog h3{margin:0 0 4px;font-size:19px}
+dialog p{color:var(--suave);font-size:14px;margin:0 0 16px}
+dialog label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+dialog input{width:100%;border:1px solid var(--linea);border-radius:var(--r-s);padding:9px 11px}
+dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.ayuda{font-size:13px;color:var(--tenue);margin-top:5px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 16px;border-radius:var(--r-m);font-size:14px;z-index:50;box-shadow:0 8px 24px rgba(23,49,43,.3)}
+
+@media (max-width:900px){
+  .dos-col{grid-template-columns:1fr}
+  .cifras{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .envoltura{padding:0 16px}
+  .op{grid-template-columns:62px 1fr;gap:12px}
+  .op .acciones{grid-column:1/-1;flex-direction:row}
+  .op .acciones .btn{flex:1}
+  .plazo .n{font-size:32px}
+  .calendario{gap:2px}
+  .etiq-dia{font-size:10px}
+  .franja h2{font-size:23px}
+  .cifras{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:no-preference){
+  .ficha-cal{animation:aparece .5s ease-out both;animation-delay:calc(var(--i,0) * 18ms)}
+  @keyframes aparece{from{transform:scaleY(0);opacity:0}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<header class="barra">
+  <div class="envoltura">
+    <h1 class="marca">Radar de Licitaciones<small id="sub-filtros">Mercado Público</small></h1>
+    <div class="espacio"></div>
+    <span class="actualizado" id="actualizado"></span>
+    <button class="btn-claro" type="button" id="abrir-ajustes">Ajustes</button>
+  </div>
+</header>
+
+<section class="franja" aria-labelledby="titulo-franja">
+  <div class="envoltura">
+    <h2 id="titulo-franja">Cierres de los próximos 30 días</h2>
+    <p class="bajada" id="bajada-franja">Cargando datos…</p>
+    <div class="calendario" id="calendario" role="list"></div>
+    <div class="leyenda">
+      <span><i style="background:var(--urgente)"></i>Cierra en 3 días o menos</span>
+      <span><i style="background:var(--pronto)"></i>De 4 a 7 días</span>
+      <span><i style="background:var(--acento)"></i>Más de 7 días</span>
+      <span><i style="background:var(--acento);box-shadow:inset 0 0 0 2px rgba(255,255,255,.65)"></i>Con borde claro: nueva</span>
+    </div>
+  </div>
+</section>
+
+<nav class="pestanas" aria-label="Secciones">
+  <div class="envoltura">
+    <a href="#oportunidades" data-vista="oportunidades">Oportunidades<span class="cuenta" id="c-op"></span></a>
+    <a href="#referencias" data-vista="referencias">Referencias de precio<span class="cuenta" id="c-ref"></span></a>
+    <a href="#competidores" data-vista="competidores">Competidores<span class="cuenta" id="c-comp"></span></a>
+    <a href="#cartera" data-vista="cartera">Mi cartera<span class="cuenta" id="c-car"></span></a>
+  </div>
+</nav>
+
+<main class="envoltura">
+  <div id="aviso-global"></div>
+
+  <section class="vista" id="v-oportunidades">
+    <div class="controles">
+      <input type="search" id="q-op" placeholder="Buscar por nombre, organismo o comuna" aria-label="Buscar oportunidades">
+      <select id="f-org-op" aria-label="Filtrar por organismo"><option value="">Todos los organismos</option></select>
+      <select id="orden-op" aria-label="Ordenar">
+        <option value="cierre">Cierran primero</option>
+        <option value="monto">Mayor monto estimado</option>
+        <option value="nuevas">Más recientes</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="solo-nuevas"> Solo nuevas</label>
+      <label class="chk"><input type="checkbox" id="con-visita"> Con visita a terreno</label>
+    </div>
+    <p class="resumen" id="res-op"></p>
+    <div class="lista" id="lista-op"></div>
+  </section>
+
+  <section class="vista" id="v-referencias" hidden>
+    <p class="titular-ref" id="titular-ref"></p>
+    <div class="dos-col">
+      <div class="panel">
+        <h3>Adjudicado frente a lo estimado, por organismo</h3>
+        <p class="nota">La línea marca el 100 %. Barras cortas: el organismo adjudica bastante bajo su presupuesto.</p>
+        <div class="barras" id="barras-org"></div>
+      </div>
+      <div>
+        <div class="controles">
+          <input type="search" id="q-ref" placeholder="Buscar licitación, organismo, partida o proveedor" aria-label="Buscar adjudicadas">
+        </div>
+        <div class="tabla-caja">
+          <table>
+            <thead><tr><th>Licitación</th><th class="der">Estimado</th><th class="der">Adjudicado</th><th class="der">%</th><th class="der">Ofertas</th></tr></thead>
+            <tbody id="tabla-ref"></tbody>
+          </table>
+        </div>
+        <p class="nota" style="color:var(--suave);font-size:13px;margin-top:8px">Haz clic en una fila para ver los precios unitarios adjudicados. Los montos adjudicados suelen ser netos; el estimado puede incluir IVA.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="vista" id="v-competidores" hidden>
+    <div class="dos-col">
+      <div class="panel">
+        <h3>Quién gana en tu zona</h3>
+        <p class="nota">Ordenado por número de licitaciones ganadas dentro de tus filtros.</p>
+        <div id="rank"></div>
+      </div>
+      <div class="panel">
+        <h3>Cómo leer esto</h3>
+        <p class="nota" style="margin:0">Las empresas que se repiten son tu competencia directa o tus candidatas a socio de UTP. Revisa en qué organismos ganan y a qué porcentaje del presupuesto: eso te dice dónde hay espacio y dónde el precio ya está muy ajustado.</p>
+        <div id="rank-detalle" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="vista" id="v-cartera" hidden>
+    <div class="cifras" id="cifras-car"></div>
+    <div class="controles">
+      <input type="search" id="nuevo-codigo" placeholder="Código de licitación, por ejemplo 1057480-12-LE26" aria-label="Código a agregar" style="flex:0 1 340px">
+      <button class="btn primario" type="button" id="btn-agregar">Agregar a la cartera</button>
+      <span style="flex:1"></span>
+      <button class="btn" type="button" id="btn-vivo">Consultar estados en Mercado Público</button>
+      <button class="btn" type="button" id="btn-exportar">Descargar respaldo</button>
+      <label class="btn" style="margin:0">Cargar respaldo<input type="file" id="btn-importar" accept="application/json" hidden></label>
+    </div>
+    <div id="aviso-car"></div>
+    <div class="tabla-caja" id="caja-car"></div>
+  </section>
+</main>
+
+<dialog id="ajustes">
+  <form method="dialog" id="form-ajustes">
+    <h3>Ajustes de este navegador</h3>
+    <p>Se guardan solo en este navegador. No se suben al repositorio.</p>
+    <label for="a-ticket">Ticket de la API de Mercado Público</label>
+    <input id="a-ticket" type="password" autocomplete="off" placeholder="Pega tu ticket">
+    <div class="ayuda">Solo se usa para consultar en vivo el estado de tu cartera.</div>
+    <label for="a-ruts">RUT de tu empresa y de tus socios UTP</label>
+    <input id="a-ruts" type="text" placeholder="77123456-7, 76987654-3">
+    <div class="ayuda">Sirve para marcar como ganadas las licitaciones adjudicadas a ti o a tu UTP.</div>
+    <div class="pie">
+      <button class="btn" value="cancelar" type="submit">Cancelar</button>
+      <button class="btn primario" value="guardar" type="submit" id="guardar-ajustes">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+/* ============ utilidades ============ */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const rutLimpio = r => String(r ?? "").replace(/[.\s]/g, "").toUpperCase();
+const pesos = new Intl.NumberFormat("es-CL", {style:"currency", currency:"CLP", maximumFractionDigits:0});
+const $$ = v => v == null || isNaN(v) ? "—" : pesos.format(v);
+const millones = v => v == null ? "—" : v >= 1e6 ? `$${(v/1e6).toLocaleString("es-CL",{maximumFractionDigits:1})} M` : $$(v);
+const pct = v => v == null || !isFinite(v) ? "—" : `${Math.round(v*100)}\u00a0%`;
+const fecha = s => { const d = s ? new Date(s) : null; return d && !isNaN(d) ? d : null; };
+const fCorta = d => d ? d.toLocaleDateString("es-CL", {day:"numeric", month:"short"}) : "—";
+const fHora = d => d ? d.toLocaleString("es-CL", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}) : "—";
+const URL_FICHA = c => `https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?idlicitacion=${encodeURIComponent(c)}`;
+const HOY = new Date();
+const diasHasta = d => Math.ceil((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(HOY.getFullYear(), HOY.getMonth(), HOY.getDate())) / 864e5);
+const mediana = a => { const s = a.filter(x => x != null && isFinite(x)).sort((x,y)=>x-y); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1]+s[m])/2; };
+function guardarLS(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+function leerLS(k, def){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch(e){ return def; } }
+function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+
+/* ============ estado ============ */
+let DATOS = {licitaciones: []};
+let POR_CODIGO = new Map();
+let ajustes = leerLS("radar.ajustes", {ticket:"", ruts:""});
+let cartera = leerLS("radar.cartera", []);
+let vivo = leerLS("radar.vivo", {});
+
+/* ============ carga ============ */
+async function cargar(){
+  try {
+    if (window.__DATOS__) DATOS = window.__DATOS__;
+    else {
+      const r = await fetch("data/licitaciones.json", {cache:"no-store"});
+      if (!r.ok) throw new Error(r.status);
+      DATOS = await r.json();
+    }
+  } catch(e) {
+    $("#aviso-global").innerHTML = `<div class="aviso">Todavía no hay datos. Ejecuta la acción <strong>Actualizar datos</strong> en la pestaña Actions de GitHub; cuando termine, recarga esta página.</div>`;
+  }
+  POR_CODIGO = new Map((DATOS.licitaciones || []).map(l => [l.codigo, l]));
+  const f = DATOS.filtros || {};
+  const reg = (f.regiones || []).length ? `Región: ${f.regiones.join(", ")}` : "Todo Chile";
+  $("#sub-filtros").textContent = reg.replace("araucan", "La Araucanía");
+  const act = fecha(DATOS.actualizado);
+  $("#actualizado").textContent = act ? `Datos al ${fHora(act)}` : "";
+  todo();
+}
+
+const abiertas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) && fecha(l.cierre) >= HOY);
+const adjudicadas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 8);
+const esNueva = l => { const p = fecha(l.primera_vez); return p && (HOY - p) < 2*864e5; };
+const nivel = d => d <= 3 ? "u" : d <= 7 ? "p" : "ok";
+
+function todo(){ pintarFranja(); pintarOportunidades(); pintarReferencias(); pintarCompetidores(); pintarCartera(); cuentas(); }
+function cuentas(){
+  $("#c-op").textContent = abiertas().length || "";
+  $("#c-ref").textContent = adjudicadas().length || "";
+  $("#c-comp").textContent = competidores().length || "";
+  $("#c-car").textContent = cartera.length || "";
+}
+
+/* ============ franja de cierres ============ */
+function pintarFranja(){
+  const cal = $("#calendario"); cal.innerHTML = "";
+  const ab = abiertas();
+  const porDia = {};
+  ab.forEach(l => { const d = diasHasta(fecha(l.cierre)); if (d >= 0 && d <= 30) (porDia[d] ||= []).push(l); });
+  let i = 0;
+  for (let d = 0; d <= 30; d++){
+    const dia = new Date(HOY); dia.setDate(HOY.getDate() + d);
+    const col = document.createElement("div");
+    col.className = "dia" + (d === 0 ? " hoy" : "") + ([0,6].includes(dia.getDay()) ? " finde" : "");
+    col.setAttribute("role", "listitem");
+    col.innerHTML = `<div class="base"></div>`;
+    (porDia[d] || []).sort((a,b) => fecha(a.cierre) - fecha(b.cierre)).forEach(l => {
+      const b = document.createElement("button");
+      b.className = `ficha-cal ${nivel(d)}${esNueva(l) ? " nueva" : ""}`;
+      b.style.setProperty("--i", i++);
+      b.type = "button";
+      b.setAttribute("aria-label", `${l.nombre}, cierra ${fHora(fecha(l.cierre))}`);
+      b.dataset.codigo = l.codigo;
+      col.appendChild(b);
+    });
+    if (d % 7 === 0){
+      const e = document.createElement("span"); e.className = "etiq-dia";
+      e.textContent = d === 0 ? "Hoy" : fCorta(dia);
+      col.appendChild(e);
+    }
+    cal.appendChild(col);
+  }
+  const en7 = ab.filter(l => diasHasta(fecha(l.cierre)) <= 7).length;
+  const nuevas = ab.filter(esNueva).length;
+  $("#bajada-franja").textContent = ab.length
+    ? `${ab.length} licitaciones abiertas calzan con tus filtros. ${en7} cierran esta semana${nuevas ? ` y ${nuevas} aparecieron desde ayer` : ""}.`
+    : "No hay licitaciones abiertas que calcen con tus filtros en este momento.";
+}
+let globo;
+document.addEventListener("pointerover", e => {
+  const b = e.target.closest(".ficha-cal"); if (!b) return;
+  const l = POR_CODIGO.get(b.dataset.codigo); if (!l) return;
+  globo?.remove(); globo = document.createElement("div"); globo.className = "globo";
+  globo.innerHTML = `<b>${esc(l.nombre)}</b>${esc(l.organismo)}<br>Cierra ${fHora(fecha(l.cierre))}${l.monto_estimado ? `, ${millones(l.monto_estimado)}` : ""}`;
+  document.body.appendChild(globo);
+  const r = b.getBoundingClientRect();
+  globo.style.left = Math.max(8, Math.min(innerWidth - globo.offsetWidth - 8, r.left + r.width/2 - globo.offsetWidth/2)) + "px";
+  globo.style.top = Math.max(8, r.top - globo.offsetHeight - 8) + "px";
+});
+document.addEventListener("pointerout", e => { if (e.target.closest(".ficha-cal")) { globo?.remove(); globo = null; } });
+$("#calendario").addEventListener("click", e => {
+  const b = e.target.closest(".ficha-cal"); if (!b) return;
+  location.hash = "oportunidades";
+  setTimeout(() => { const f = document.getElementById("op-" + b.dataset.codigo); if (f){ f.scrollIntoView({behavior:"smooth", block:"center"}); f.style.background = "#FFF8E6"; setTimeout(() => f.style.background = "", 1600); } }, 60);
+});
+
+/* ============ oportunidades ============ */
+function pintarOportunidades(){
+  const sel = $("#f-org-op"), actual = sel.value;
+  const orgs = [...new Set(abiertas().map(l => l.organismo).filter(Boolean))].sort();
+  sel.innerHTML = `<option value="">Todos los organismos</option>` + orgs.map(o => `<option${o === actual ? " selected" : ""}>${esc(o)}</option>`).join("");
+  filtrarOportunidades();
+}
+function filtrarOportunidades(){
+  const q = norm($("#q-op").value), org = $("#f-org-op").value, orden = $("#orden-op").value;
+  let ls = abiertas().filter(l =>
+    (!q || norm(`${l.nombre} ${l.organismo} ${l.unidad} ${l.comuna} ${l.codigo}`).includes(q)) &&
+    (!org || l.organismo === org) &&
+    (!$("#solo-nuevas").checked || esNueva(l)) &&
+    (!$("#con-visita").checked || l.visita));
+  ls.sort(orden === "monto" ? (a,b) => (b.monto_estimado||0) - (a.monto_estimado||0)
+        : orden === "nuevas" ? (a,b) => String(b.primera_vez).localeCompare(String(a.primera_vez))
+        : (a,b) => fecha(a.cierre) - fecha(b.cierre));
+  const total = ls.reduce((s,l) => s + (l.monto_estimado || 0), 0);
+  $("#res-op").innerHTML = ls.length ? `<strong>${ls.length}</strong> oportunidades${total ? `, con <strong>${millones(total)}</strong> en presupuestos visibles` : ""}.` : "";
+  const enCartera = new Set(cartera.map(c => c.codigo));
+  $("#lista-op").innerHTML = ls.length ? ls.map(l => {
+    const c = fecha(l.cierre), d = diasHasta(c), v = fecha(l.visita);
+    const visitaPasada = v && v < HOY, visitaPronto = v && !visitaPasada && diasHasta(v) <= 3;
+    return `<article class="op" id="op-${esc(l.codigo)}">
+      <div class="plazo ${nivel(d)}"><span class="n num">${d}</span><span class="t">${d === 1 ? "día" : "días"} al cierre</span></div>
+      <div>
+        <h3>${esc(l.nombre)}${esNueva(l) ? `<span class="marca-nueva">Nueva</span>` : ""}</h3>
+        <div class="org">${esc(l.organismo)}${l.comuna ? `, ${esc(l.comuna)}` : ""}</div>
+        <div class="datos">
+          <span>Cierra <strong>${fHora(c)}</strong></span>
+          <span>Presupuesto <strong class="num">${l.monto_estimado ? $$(l.monto_estimado) : "no publicado"}</strong></span>
+          ${v ? `<span class="${visitaPronto ? "visita-alerta" : ""}">Visita a terreno <strong>${visitaPasada ? "ya realizada" : fHora(v)}</strong></span>` : ""}
+          <span>${esc(l.tipo || "")} ${esc(l.codigo)}</span>
+        </div>
+      </div>
+      <div class="acciones">
+        <a class="btn" href="${URL_FICHA(l.codigo)}" target="_blank" rel="noopener">Ver ficha</a>
+        ${enCartera.has(l.codigo) ? `<span class="btn hecho">En tu cartera</span>` : `<button class="btn primario" type="button" data-agregar="${esc(l.codigo)}">Agregar a cartera</button>`}
+      </div>
+    </article>`;
+  }).join("") : `<div class="vacio"><h3>Sin resultados</h3>Prueba con otra búsqueda o quita filtros. Si la lista sigue vacía, amplía las palabras clave en <code>config.json</code>.</div>`;
+}
+["q-op","f-org-op","orden-op","solo-nuevas","con-visita"].forEach(id => $("#"+id).addEventListener("input", filtrarOportunidades));
+document.addEventListener("click", e => { const b = e.target.closest("[data-agregar]"); if (b) agregarCartera(b.dataset.agregar); });
+
+/* ============ referencias ============ */
+function pintarReferencias(){
+  const adj = adjudicadas();
+  const conAmbos = adj.filter(l => l.monto_estimado > 0 && l.monto_adjudicado > 0);
+  const m = mediana(conAmbos.map(l => l.monto_adjudicado / l.monto_estimado));
+  const of = mediana(adj.map(l => l.oferentes));
+  $("#titular-ref").innerHTML = conAmbos.length
+    ? `En ${conAmbos.length} adjudicaciones con presupuesto visible, el monto adjudicado fue en mediana el <span class="cifra num">${pct(m)}</span> de lo estimado${of ? `, con ${of.toLocaleString("es-CL")} ofertas por proceso` : ""}.`
+    : adj.length ? `${adj.length} adjudicaciones en el histórico, pero ninguna con presupuesto visible para comparar.` : "El histórico de adjudicadas se completa con la primera ejecución de la acción.";
+  const grupos = {};
+  conAmbos.forEach(l => (grupos[l.organismo] ||= []).push(l.monto_adjudicado / l.monto_estimado));
+  const filas = Object.entries(grupos).map(([o, rs]) => ({o, m: mediana(rs), n: rs.length})).sort((a,b) => b.n - a.n).slice(0, 12);
+  const max = Math.max(1.1, ...filas.map(f => f.m));
+  $("#barras-org").innerHTML = filas.length ? filas.map(f => `
+    <div class="barra-fila">
+      <span class="nombre" title="${esc(f.o)}">${esc(f.o)}</span><span class="valor num">${pct(f.m)}</span>
+      <div class="pista"><div class="relleno" style="width:${Math.min(100, f.m/max*100)}%"></div><div class="marca-100" style="left:${100/max*100}%"></div></div>
+      <span class="sub">${f.n} ${f.n === 1 ? "licitación" : "licitaciones"}</span>
+    </div>`).join("") : `<p class="nota">Sin datos suficientes.</p>`;
+  filtrarReferencias();
+}
+function filtrarReferencias(){
+  const q = norm($("#q-ref").value);
+  const ls = adjudicadas().filter(l => !q || norm(`${l.nombre} ${l.organismo} ${l.codigo} ${(l.ganadores||[]).join(" ")} ${(l.items||[]).map(i => i.producto + " " + i.descripcion).join(" ")}`).includes(q))
+    .sort((a,b) => String(b.adjudicacion).localeCompare(String(a.adjudicacion)));
+  $("#tabla-ref").innerHTML = ls.length ? ls.slice(0, 300).map(l => {
+    const r = l.monto_estimado && l.monto_adjudicado ? l.monto_adjudicado / l.monto_estimado : null;
+    return `<tr class="clic" data-cod="${esc(l.codigo)}" tabindex="0">
+      <td class="cel-nombre">${esc(l.nombre)}<span class="org">${esc(l.organismo)}, ${fCorta(fecha(l.adjudicacion))}. Ganó: ${esc((l.ganadores||[]).join(", ") || "—")}</span></td>
+      <td class="der num">${millones(l.monto_estimado)}</td><td class="der num">${millones(l.monto_adjudicado)}</td>
+      <td class="der num">${pct(r)}</td><td class="der num">${l.oferentes ?? "—"}</td></tr>`;
+  }).join("") : `<tr><td colspan="5" class="vacio">Sin adjudicaciones que coincidan.</td></tr>`;
+}
+$("#q-ref").addEventListener("input", filtrarReferencias);
+function abrirDetalle(tr){
+  const sig = tr.nextElementSibling;
+  if (sig?.classList.contains("detalle")) { sig.remove(); return; }
+  const l = POR_CODIGO.get(tr.dataset.cod); if (!l) return;
+  const d = document.createElement("tr"); d.className = "detalle";
+  d.innerHTML = `<td colspan="5">${(l.items||[]).length ? `<table class="items"><thead><tr><th>Partida</th><th class="der">Cant.</th><th class="der">Unitario</th><th class="der">Total</th><th>Proveedor</th></tr></thead><tbody>
+    ${l.items.map(i => `<tr><td>${esc(i.producto)}${i.descripcion ? `<br><span style="color:var(--suave)">${esc(i.descripcion.slice(0,160))}</span>` : ""}</td><td class="der num">${(i.cantidad ?? "—").toLocaleString("es-CL")} ${esc(i.unidad||"")}</td><td class="der num">${$$(i.unitario)}</td><td class="der num">${$$(i.total)}</td><td>${esc(i.proveedor)}</td></tr>`).join("")}
+    </tbody></table>` : "Sin detalle de ítems."}
+    <div style="margin-top:10px;display:flex;gap:8px"><a class="btn" href="${URL_FICHA(l.codigo)}" target="_blank" rel="noopener">Ver ficha</a>${l.acta ? `<a class="btn" href="${esc(l.acta)}" target="_blank" rel="noopener">Ver acta de adjudicación</a>` : ""}</div></td>`;
+  tr.after(d);
+}
+$("#tabla-ref").addEventListener("click", e => { const tr = e.target.closest("tr.clic"); if (tr && !e.target.closest("a")) abrirDetalle(tr); });
+$("#tabla-ref").addEventListener("keydown", e => { if (e.key === "Enter") { const tr = e.target.closest("tr.clic"); if (tr) abrirDetalle(tr); } });
+
+/* ============ competidores ============ */
+function competidores(){
+  const m = {};
+  adjudicadas().forEach(l => {
+    const vistos = new Set();
+    (l.items || []).forEach(i => {
+      const k = i.rut || i.proveedor; if (!k) return;
+      const c = (m[k] ||= {nombre: i.proveedor, rut: i.rut, ganadas: 0, monto: 0, orgs: new Set(), ratios: []});
+      c.monto += i.total || 0; c.orgs.add(l.organismo);
+      if (!vistos.has(k)) { vistos.add(k); c.ganadas++; if (l.monto_estimado && l.monto_adjudicado) c.ratios.push(l.monto_adjudicado / l.monto_estimado); }
+    });
+  });
+  return Object.values(m).sort((a,b) => b.ganadas - a.ganadas || b.monto - a.monto);
+}
+function pintarCompetidores(){
+  const cs = competidores(), max = Math.max(1, ...cs.map(c => c.ganadas));
+  $("#rank").innerHTML = cs.length ? cs.slice(0, 15).map((c, i) => `
+    <div class="rank" data-rut="${esc(c.rut)}">
+      <span class="pos num">${i+1}</span>
+      <span class="quien">${esc(c.nombre)}<small>${esc([...c.orgs].slice(0,3).join(", "))}${c.orgs.size > 3 ? ` y ${c.orgs.size-3} más` : ""}</small></span>
+      <span class="cuanto num">${c.ganadas} ${c.ganadas === 1 ? "ganada" : "ganadas"}<small>${millones(c.monto)}</small></span>
+      <div class="pista"><div class="relleno" style="width:${c.ganadas/max*100}%"></div></div>
+    </div>`).join("") : `<p class="nota">Aparecerán cuando haya adjudicaciones en el histórico.</p>`;
+  const top = cs.slice(0, 5).filter(c => c.ratios.length);
+  $("#rank-detalle").innerHTML = top.length ? `<table><thead><tr><th>Empresa</th><th class="der">Adjudica, en mediana, al</th></tr></thead><tbody>
+    ${top.map(c => `<tr><td>${esc(c.nombre)}</td><td class="der num">${pct(mediana(c.ratios))} del estimado</td></tr>`).join("")}</tbody></table>` : "";
+}
+
+/* ============ cartera ============ */
+const ESTADOS_INT = ["En estudio","Visita","Preparando","Ofertada","Descartada"];
+function infoOficial(cod){ return vivo[cod] || POR_CODIGO.get(cod) || null; }
+function resultado(c, l){
+  if (!l) return {t:"Sin datos", k:"gris"};
+  if (l.estado_cod === 8){
+    const ruts = new Set(ajustes.ruts.split(/[,;\s]+/).map(rutLimpio).filter(Boolean));
+    if (!ruts.size) return {t:"Adjudicada", k:"gris"};
+    if ((l.items||[]).some(i => ruts.has(rutLimpio(i.rut)))) return {t:"Ganada", k:"verde"};
+    return c.estado === "Ofertada" ? {t:"Perdida", k:"naranja"} : {t:"Adjudicada a otro", k:"gris"};
+  }
+  if (l.estado_cod === 7 || l.estado_cod === 18) return {t:l.estado, k:"gris"};
+  if (l.estado_cod === 5) return {t:"Abierta", k:"ambar"};
+  return {t:l.estado || "Pendiente", k:"ambar"};
+}
+function agregarCartera(cod){
+  cod = String(cod || "").trim().toUpperCase();
+  if (!cod) return;
+  if (cartera.some(c => c.codigo === cod)) { toast("Esa licitación ya está en tu cartera"); return; }
+  cartera.unshift({codigo: cod, estado: "En estudio", socio: "", ofertado: null, costo: null, notas: ""});
+  guardarLS("radar.cartera", cartera);
+  toast("Agregada a tu cartera");
+  filtrarOportunidades(); pintarCartera(); cuentas();
+}
+function pintarCartera(){
+  const filas = cartera.map(c => ({c, l: infoOficial(c.codigo)})).map(x => ({...x, r: resultado(x.c, x.l)}));
+  const ganadas = filas.filter(x => x.r.t === "Ganada"), perdidas = filas.filter(x => x.r.t === "Perdida");
+  const ofertadas = filas.filter(x => x.c.estado === "Ofertada" || x.r.t === "Ganada");
+  const margenes = filas.map(x => x.c.ofertado > 0 && x.c.costo != null ? (x.c.ofertado - x.c.costo) / x.c.ofertado : null).filter(v => v != null);
+  const tasa = ganadas.length + perdidas.length ? ganadas.length / (ganadas.length + perdidas.length) : null;
+  $("#cifras-car").innerHTML = [
+    [cartera.length, "en cartera"], [ofertadas.length, "ofertadas"], [ganadas.length, "ganadas"],
+    [pct(tasa), "tasa de adjudicación"], [millones(ganadas.reduce((s,x) => s + (x.c.ofertado || 0), 0)), "monto ganado"],
+    [pct(margenes.length ? margenes.reduce((a,b)=>a+b,0)/margenes.length : null), "margen promedio"],
+  ].map(([v,t]) => `<div><b class="num">${v}</b><span>${t}</span></div>`).join("");
+  if (!cartera.length){
+    $("#caja-car").innerHTML = `<div class="vacio"><h3>Tu cartera está vacía</h3>Agrega licitaciones desde la pestaña Oportunidades o pega un código arriba. Aquí llevas el estado de cada oferta, el socio UTP, el monto ofertado y el costo.</div>`;
+    return;
+  }
+  $("#caja-car").innerHTML = `<table class="cartera"><thead><tr>
+    <th>Licitación</th><th>Estado interno</th><th>Socio UTP</th><th class="der">Monto ofertado</th><th class="der">Costo estimado</th><th class="der">Margen</th><th>Resultado</th><th>Notas</th><th></th></tr></thead><tbody>
+    ${filas.map(({c, l, r}) => {
+      const mg = c.ofertado > 0 && c.costo != null ? (c.ofertado - c.costo) / c.ofertado : null;
+      const cierre = l && fecha(l.cierre);
+      return `<tr data-cod="${esc(c.codigo)}">
+        <td class="cel-nombre" style="min-width:260px;padding-left:10px"><a href="${URL_FICHA(c.codigo)}" target="_blank" rel="noopener">${esc(c.codigo)}</a><span class="org">${l ? `${esc(l.nombre)}<br>${esc(l.organismo)}${cierre ? `, cierre ${fCorta(cierre)}` : ""}` : "Sin información aún. Usa «Consultar estados en Mercado Público»."}</span></td>
+        <td><select data-campo="estado">${ESTADOS_INT.map(s => `<option${s === c.estado ? " selected" : ""}>${s}</option>`).join("")}</select></td>
+        <td><input data-campo="socio" value="${esc(c.socio)}" placeholder="—"></td>
+        <td><input class="monto num" data-campo="ofertado" inputmode="numeric" value="${c.ofertado ?? ""}" placeholder="$"></td>
+        <td><input class="monto num" data-campo="costo" inputmode="numeric" value="${c.costo ?? ""}" placeholder="$"></td>
+        <td class="der num">${pct(mg)}</td>
+        <td><span class="pildora ${r.k}">${esc(r.t)}</span>${l?.ganadores?.length && r.t !== "Ganada" ? `<span class="org" style="display:block;font-size:12px;color:var(--suave);margin-top:3px">${esc(l.ganadores[0])}</span>` : ""}</td>
+        <td><input data-campo="notas" value="${esc(c.notas)}" placeholder="—" style="min-width:160px"></td>
+        <td><button class="btn-x" type="button" data-quitar aria-label="Quitar ${esc(c.codigo)} de la cartera">×</button></td></tr>`;
+    }).join("")}</tbody></table>`;
+}
+$("#caja-car").addEventListener("change", e => {
+  const tr = e.target.closest("tr[data-cod]"), campo = e.target.dataset.campo; if (!tr || !campo) return;
+  const c = cartera.find(x => x.codigo === tr.dataset.cod); if (!c) return;
+  let v = e.target.value;
+  if (campo === "ofertado" || campo === "costo") { v = v.replace(/[^\d]/g, ""); v = v ? Number(v) : null; }
+  c[campo] = v; guardarLS("radar.cartera", cartera); pintarCartera();
+});
+$("#caja-car").addEventListener("click", e => {
+  if (!e.target.closest("[data-quitar]")) return;
+  const cod = e.target.closest("tr").dataset.cod;
+  cartera = cartera.filter(c => c.codigo !== cod); guardarLS("radar.cartera", cartera);
+  pintarCartera(); filtrarOportunidades(); cuentas(); toast(`${cod} quitada de la cartera`);
+});
+$("#btn-agregar").addEventListener("click", () => { agregarCartera($("#nuevo-codigo").value); $("#nuevo-codigo").value = ""; });
+$("#nuevo-codigo").addEventListener("keydown", e => { if (e.key === "Enter") $("#btn-agregar").click(); });
+$("#btn-exportar").addEventListener("click", () => {
+  try {
+    const blob = new Blob([JSON.stringify({cartera, guardado: new Date().toISOString()}, null, 2)], {type:"application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `cartera-licitaciones-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  } catch(e) { toast("No se pudo descargar el respaldo en esta vista"); }
+});
+$("#btn-importar").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.cartera)) throw 0;
+    const existentes = new Set(cartera.map(c => c.codigo));
+    d.cartera.forEach(c => { if (c.codigo && !existentes.has(c.codigo)) cartera.push(c); });
+    guardarLS("radar.cartera", cartera); pintarCartera(); cuentas(); toast("Respaldo cargado");
+  } catch(_) { toast("El archivo no es un respaldo válido de la cartera"); }
+  e.target.value = "";
+});
+
+/* consulta en vivo (JSONP, permitido por la API de Mercado Público) */
+function jsonp(url){
+  return new Promise((ok, mal) => {
+    const cb = "mp" + Date.now() + Math.floor(Math.random()*1e5);
+    const s = document.createElement("script");
+    const fin = () => { delete window[cb]; s.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { fin(); mal(new Error("La API no respondió a tiempo")); }, 25000);
+    window[cb] = d => { fin(); ok(d); };
+    s.onerror = () => { fin(); mal(new Error("No se pudo conectar con la API")); };
+    s.src = `${url}&callback=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+const ESTADOS_API = {5:"Publicada",6:"Cerrada",7:"Desierta",8:"Adjudicada",18:"Revocada",19:"Suspendida"};
+function aplanar(d){
+  const comp = d.Comprador || {}, f = d.Fechas || {}, adj = d.Adjudicacion || {};
+  const items = [], gan = {};
+  ((d.Items || {}).Listado || []).forEach(it => {
+    const a = it.Adjudicacion || {}; const u = Number(a.MontoUnitario), q = Number(a.Cantidad);
+    if (a && u) { const t = (q||0) * u; const p = a.NombreProveedor || rutLimpio(a.RutProveedor); gan[p] = (gan[p]||0) + t;
+      items.push({producto: it.NombreProducto, descripcion: it.Descripcion || "", unidad: it.UnidadMedida, cantidad: q, unitario: u, total: t, proveedor: p, rut: rutLimpio(a.RutProveedor)}); }
+  });
+  const cod = Number(d.CodigoEstado);
+  return {codigo: d.CodigoExterno, nombre: d.Nombre, estado_cod: cod, estado: ESTADOS_API[cod] || d.Estado,
+    organismo: comp.NombreOrganismo, comuna: comp.ComunaUnidad, cierre: f.FechaCierre || d.FechaCierre, visita: f.FechaVisitaTerreno,
+    adjudicacion: f.FechaAdjudicacion, monto_estimado: Number(d.VisibilidadMonto) ? Number(d.MontoEstimado) || null : null,
+    oferentes: Number(adj.NumeroOferentes) || null, acta: adj.UrlActa,
+    monto_adjudicado: items.reduce((s,i) => s + i.total, 0) || null,
+    ganadores: Object.keys(gan).sort((a,b) => gan[b] - gan[a]), items};
+}
+$("#btn-vivo").addEventListener("click", async () => {
+  if (!ajustes.ticket) { $("#aviso-car").innerHTML = `<div class="aviso">Para consultar en vivo, guarda tu ticket en <strong>Ajustes</strong>.</div>`; return; }
+  if (!cartera.length) return;
+  const btn = $("#btn-vivo"); btn.disabled = true;
+  let ok = 0, errores = [];
+  for (const [n, c] of cartera.entries()){
+    btn.textContent = `Consultando ${n+1} de ${cartera.length}…`;
+    try {
+      const d = await jsonp(`https://api.mercadopublico.cl/servicios/v1/publico/licitaciones.jsonp?codigo=${encodeURIComponent(c.codigo)}&ticket=${encodeURIComponent(ajustes.ticket)}`);
+      const l = (d && d.Listado || [])[0];
+      if (l) { vivo[c.codigo] = aplanar(l); ok++; } else errores.push(`${c.codigo}: ${d && d.Mensaje ? d.Mensaje : "no encontrada"}`);
+    } catch(e) { errores.push(`${c.codigo}: ${e.message}`); }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  guardarLS("radar.vivo", vivo);
+  btn.disabled = false; btn.textContent = "Consultar estados en Mercado Público";
+  $("#aviso-car").innerHTML = errores.length ? `<div class="aviso error">${ok} actualizadas. No se pudo consultar: ${errores.map(esc).join("; ")}</div>` : "";
+  pintarCartera(); toast(`${ok} licitaciones actualizadas`);
+});
+
+/* ============ ajustes ============ */
+$("#abrir-ajustes").addEventListener("click", () => { $("#a-ticket").value = ajustes.ticket; $("#a-ruts").value = ajustes.ruts; $("#ajustes").showModal(); });
+$("#ajustes").addEventListener("close", () => {
+  if ($("#ajustes").returnValue !== "guardar") return;
+  ajustes = {ticket: $("#a-ticket").value.trim(), ruts: $("#a-ruts").value.trim()};
+  guardarLS("radar.ajustes", ajustes); pintarCartera(); toast("Ajustes guardados");
+});
+
+/* ============ navegación ============ */
+function ruta(){
+  const v = ["oportunidades","referencias","competidores","cartera"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "oportunidades";
+  document.querySelectorAll(".vista").forEach(s => s.hidden = s.id !== "v-" + v);
+  document.querySelectorAll("nav.pestanas a").forEach(a => { if (a.dataset.vista === v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+}
+addEventListener("hashchange", ruta);
+ruta();
+cargar();
+</script>
+</body>
+</html>

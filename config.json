@@ -1,0 +1,13 @@
+{
+  "palabras_clave": [
+    "mantencion", "mantenimiento", "conservacion", "reparacion",
+    "habilitacion", "normalizacion", "mejoramiento",
+    "climatizacion", "aire acondicionado", "calefaccion",
+    "pintura", "infraestructura", "electrica"
+  ],
+  "excluir": ["vehiculo", "software", "alimentacion"],
+  "regiones": ["araucan"],
+  "organismos": [],
+  "dias_historico": 90,
+  "pausa_segundos": 1.5
+}
