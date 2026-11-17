@@ -162,7 +162,7 @@ class Radar:
         # Permite omitir sin consultar el detalle las licitaciones de unidades ya vistas fuera de la zona.
         self.unidades = est.get("unidades", {})
         self.clave_filtros = json.dumps([self.regiones, self.organismos])
-        if est.get("clave_filtros") != self.clave_filtros:
+        if "clave_filtros" in est and est["clave_filtros"] != self.clave_filtros:
             self.unidades, self.descartadas = {}, set()  # cambiaron los filtros: reevaluar todo
 
     def calza_nombre(self, nombre) -> bool:
