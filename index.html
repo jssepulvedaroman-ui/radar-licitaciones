@@ -33,6 +33,9 @@ header.barra{background:var(--tinta);color:#EAF2EF}
 .marca small{display:block;font-size:13px;font-weight:400;color:#A9C2BA;font-variation-settings:"wdth" 100;letter-spacing:0}
 .barra .espacio{flex:1}
 .actualizado{font-size:13px;color:#A9C2BA}
+.sel-region{background:#23443C;border:1px solid #3E5E56;color:#EAF2EF;border-radius:var(--r-s);padding:7px 10px;max-width:260px}
+.sel-region option{color:var(--tinta);background:#fff}
+.reg-et{font-size:13px;color:#A9C2BA}
 .btn-claro{background:transparent;border:1px solid #3E5E56;color:#EAF2EF;border-radius:var(--r-s);padding:7px 12px;cursor:pointer}
 .btn-claro:hover{background:#23443C}
 
@@ -197,6 +200,9 @@ dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
   <div class="envoltura">
     <h1 class="marca">Radar de Licitaciones<small id="sub-filtros">Mercado Público</small></h1>
     <div class="espacio"></div>
+    <label class="reg-et" id="caja-region" hidden>Región
+      <select class="sel-region" id="f-region" aria-label="Filtrar por región"></select>
+    </label>
     <span class="actualizado" id="actualizado"></span>
     <button class="btn-claro" type="button" id="abrir-ajustes">Ajustes</button>
   </div>
@@ -359,13 +365,40 @@ async function cargar(){
   const f = DATOS.filtros || {};
   const reg = (f.regiones || []).length ? `Región: ${f.regiones.join(", ")}` : "Todo Chile";
   $("#sub-filtros").textContent = reg.replace("araucan", "La Araucanía");
+  prepararRegiones();
   const act = fecha(DATOS.actualizado);
   $("#actualizado").textContent = act ? `Datos al ${fHora(act)}` : "";
   todo();
 }
 
-const abiertas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) && fecha(l.cierre) >= HOY);
-const adjudicadas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 8);
+/* ============ regiones ============ */
+const ORDEN_REG = ["arica","tarapac","antofagasta","atacama","coquimbo","valpara","metropolitana","higgins","maule","nuble","bio","araucan","los rios","los lagos","ays","magallanes"];
+const regionLimpia = r => String(r || "Sin región").trim();
+const regionCorta = r => regionLimpia(r).replace(/^Regi[oó]n\s+(de\s+la\s+|del\s+|de\s+)?/i, "");
+const ordenRegion = r => { const n = norm(r); const i = ORDEN_REG.findIndex(k => n.includes(k)); return i < 0 ? 99 : i; };
+let REGION = leerLS("radar.region", "");
+const enRegion = l => !REGION || regionLimpia(l.region) === REGION;
+const variasRegiones = () => new Set((DATOS.licitaciones || []).map(l => regionLimpia(l.region))).size > 1;
+function prepararRegiones(){
+  const conteo = {};
+  (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) >= HOY).forEach(l => { const r = regionLimpia(l.region); conteo[r] = (conteo[r] || 0) + 1; });
+  const todas = [...new Set((DATOS.licitaciones || []).map(l => regionLimpia(l.region)))].sort((a,b) => ordenRegion(a) - ordenRegion(b) || a.localeCompare(b));
+  if (todas.length < 2) { $("#caja-region").hidden = true; REGION = ""; return; }
+  if (REGION && !todas.includes(REGION)) REGION = "";
+  const total = Object.values(conteo).reduce((a,b) => a + b, 0);
+  $("#f-region").innerHTML = `<option value="">Todo Chile (${total} abiertas)</option>` +
+    todas.map(r => `<option value="${esc(r)}"${r === REGION ? " selected" : ""}>${esc(regionCorta(r))} (${conteo[r] || 0})</option>`).join("");
+  $("#caja-region").hidden = false;
+  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todo Chile";
+}
+$("#f-region").addEventListener("change", e => {
+  REGION = e.target.value; guardarLS("radar.region", REGION);
+  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todo Chile";
+  todo();
+});
+
+const abiertas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) && fecha(l.cierre) >= HOY && enRegion(l));
+const adjudicadas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 8 && enRegion(l));
 const esNueva = l => { const p = fecha(l.primera_vez); return p && (HOY - p) < 2*864e5; };
 const nivel = d => d <= 3 ? "u" : d <= 7 ? "p" : "ok";
 
@@ -457,7 +490,7 @@ function filtrarOportunidades(){
       <div class="plazo ${nivel(d)}"><span class="n num">${d}</span><span class="t">${d === 1 ? "día" : "días"} al cierre</span></div>
       <div>
         <h3>${esc(l.nombre)}${esNueva(l) ? `<span class="marca-nueva">Nueva</span>` : ""}</h3>
-        <div class="org">${esc(l.organismo)}${l.comuna ? `, ${esc(l.comuna)}` : ""}</div>
+        <div class="org">${esc(l.organismo)}${l.comuna ? `, ${esc(l.comuna)}` : ""}${!REGION && variasRegiones() ? `, ${esc(regionCorta(l.region))}` : ""}</div>
         <div class="datos">
           <span>Cierra <strong>${fHora(c)}</strong></span>
           <span>Presupuesto <strong class="num">${l.monto_estimado ? $$(l.monto_estimado) : "no publicado"}</strong></span>

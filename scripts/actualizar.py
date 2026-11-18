@@ -163,7 +163,11 @@ class Radar:
         self.unidades = est.get("unidades", {})
         self.clave_filtros = json.dumps([self.regiones, self.organismos])
         if "clave_filtros" in est and est["clave_filtros"] != self.clave_filtros:
-            self.unidades, self.descartadas = {}, set()  # cambiaron los filtros: reevaluar todo
+            # Cambiaron regiones u organismos: reevaluar unidades, volver a recorrer el histórico
+            # (sin repetir el detalle de lo ya guardado) y quitar lo que quedó fuera de los filtros.
+            print("Filtros de zona modificados: se reevalúa el histórico completo.")
+            self.unidades, self.descartadas, self.dias_revisados = {}, set(), set()
+            self.licitaciones = {c: r for c, r in self.licitaciones.items() if self.calza_comprador(r)}
 
     def calza_nombre(self, nombre) -> bool:
         n = normalizar(nombre)
@@ -220,7 +224,17 @@ class Radar:
                 if self.calza_nombre(l.get("Nombre")) and not self.omitir(l.get("CodigoExterno"))]
         print(f"  {len(activas)} activas en el país, {len(cand)} calzan con las palabras clave")
         n = 0
+        ahora = datetime.now()
         for i, c in enumerate(cand, 1):
+            previo = self.licitaciones.get(c)
+            if previo and previo.get("estado_cod") == 5:
+                # Ya conocida: refrescar solo si su información tiene más de 3 días o cierra pronto.
+                act = datetime.fromisoformat(previo["actualizado"]) if previo.get("actualizado") else None
+                cierre = (previo.get("cierre") or "")[:19]
+                cierra_pronto = cierre and cierre <= (ahora + timedelta(days=2)).isoformat()
+                if act and (ahora - act).days < 3 and not cierra_pronto:
+                    n += 1
+                    continue
             n += self.procesar(c, "vigilancia")
             if i % 20 == 0:
                 self.guardar()
