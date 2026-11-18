@@ -6,7 +6,7 @@
     "pintura", "infraestructura", "electrica"
   ],
   "excluir": ["vehiculo", "software", "alimentacion"],
-  "regiones": ["araucan"],
+  "regiones": [],
   "organismos": [],
   "dias_historico": 90,
   "pausa_segundos": 1.5
