@@ -43,7 +43,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          # Los datos de esta ejecución son los más recientes: se guardan sobre la versión actual del repositorio
+          # (evita perder la ejecución si otra guardó datos mientras esta corría).
+          cp -r data /tmp/datos-nuevos
+          git fetch origin main
+          git reset --hard origin/main
+          rm -rf data && cp -r /tmp/datos-nuevos data
           git add data
           git diff --cached --quiet || git commit -m "Datos actualizados $(date -u +%F)"
-          git pull --rebase --autostash origin main
-          git push
+          git push origin HEAD:main
