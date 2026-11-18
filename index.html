@@ -75,6 +75,7 @@ main.envoltura{padding-top:26px;padding-bottom:60px}
 .controles input[type=search],.controles select{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-s);padding:9px 12px;min-width:0}
 .controles input[type=search]{flex:1 1 260px}
 .controles select{flex:0 0 auto;max-width:100%}
+#f-org-op{max-width:340px}
 .controles label.chk{display:flex;gap:6px;align-items:center;color:var(--suave);font-size:14px;cursor:pointer}
 .resumen{color:var(--suave);margin:0 0 14px}
 .resumen strong{color:var(--tinta)}
@@ -200,7 +201,7 @@ dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
   <div class="envoltura">
     <h1 class="marca">Radar de Licitaciones<small id="sub-filtros">Mercado Público</small></h1>
     <div class="espacio"></div>
-    <label class="reg-et" id="caja-region" hidden>Región
+    <label class="reg-et" id="caja-region">Región
       <select class="sel-region" id="f-region" aria-label="Filtrar por región"></select>
     </label>
     <span class="actualizado" id="actualizado"></span>
@@ -236,6 +237,7 @@ dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
 
   <section class="vista" id="v-oportunidades">
     <div class="controles">
+      <select id="f-region-op" aria-label="Filtrar por región" class="sel-filtro-region"></select>
       <input type="search" id="q-op" placeholder="Buscar por nombre, organismo o comuna" aria-label="Buscar oportunidades">
       <select id="f-org-op" aria-label="Filtrar por organismo"><option value="">Todos los organismos</option></select>
       <select id="orden-op" aria-label="Ordenar">
@@ -383,23 +385,25 @@ function prepararRegiones(){
   const conteo = {};
   (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) >= HOY).forEach(l => { const r = regionLimpia(l.region); conteo[r] = (conteo[r] || 0) + 1; });
   const todas = [...new Set((DATOS.licitaciones || []).map(l => regionLimpia(l.region)))].sort((a,b) => ordenRegion(a) - ordenRegion(b) || a.localeCompare(b));
-  if (todas.length < 2) { $("#caja-region").hidden = true; REGION = ""; return; }
   if (REGION && !todas.includes(REGION)) REGION = "";
   const total = Object.values(conteo).reduce((a,b) => a + b, 0);
-  $("#f-region").innerHTML = `<option value="">Todo Chile (${total} abiertas)</option>` +
+  const opciones = `<option value="">Todas las regiones (${total})</option>` +
     todas.map(r => `<option value="${esc(r)}"${r === REGION ? " selected" : ""}>${esc(regionCorta(r))} (${conteo[r] || 0})</option>`).join("");
-  $("#caja-region").hidden = false;
-  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todo Chile";
+  $("#f-region").innerHTML = opciones;
+  $("#f-region-op").innerHTML = opciones;
+  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todas las regiones";
 }
-$("#f-region").addEventListener("change", e => {
+["f-region","f-region-op"].forEach(id => $("#"+id).addEventListener("change", e => {
   REGION = e.target.value; guardarLS("radar.region", REGION);
-  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todo Chile";
+  $("#f-region").value = REGION; $("#f-region-op").value = REGION;
+  $("#f-org-op").value = "";
+  $("#sub-filtros").textContent = REGION ? regionCorta(REGION) : "Todas las regiones";
   todo();
-});
+}));
 
 const abiertas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) && fecha(l.cierre) >= HOY && enRegion(l));
 const adjudicadas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 8 && enRegion(l));
-const esNueva = l => { const p = fecha(l.primera_vez); return p && (HOY - p) < 2*864e5; };
+const esNueva = l => { const p = fecha(l.primera_vez); return p && (HOY - p) < 864e5; };
 const nivel = d => d <= 3 ? "u" : d <= 7 ? "p" : "ok";
 
 function todo(){ pintarFranja(); pintarOportunidades(); pintarReferencias(); pintarCompetidores(); pintarCartera(); cuentas(); }
@@ -442,7 +446,7 @@ function pintarFranja(){
   const en7 = ab.filter(l => diasHasta(fecha(l.cierre)) <= 7).length;
   const nuevas = ab.filter(esNueva).length;
   $("#bajada-franja").textContent = ab.length
-    ? `${ab.length} licitaciones abiertas calzan con tus filtros. ${en7} cierran esta semana${nuevas ? ` y ${nuevas} aparecieron desde ayer` : ""}.`
+    ? `${ab.length} licitaciones abiertas calzan con tus filtros. ${en7} cierran esta semana${nuevas ? ` y ${nuevas} aparecieron en las últimas 24 horas` : ""}.`
     : "No hay licitaciones abiertas que calcen con tus filtros en este momento.";
 }
 let globo;
@@ -737,6 +741,7 @@ $("#ajustes").addEventListener("close", () => {
 function ruta(){
   const v = ["oportunidades","referencias","competidores","cartera"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "oportunidades";
   document.querySelectorAll(".vista").forEach(s => s.hidden = s.id !== "v-" + v);
+  $("#caja-region").hidden = v === "oportunidades" || v === "cartera";  // en Oportunidades está en la fila de filtros
   document.querySelectorAll("nav.pestanas a").forEach(a => { if (a.dataset.vista === v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
 }
 addEventListener("hashchange", ruta);
