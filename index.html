@@ -216,8 +216,8 @@ dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
     <div class="calendario" id="calendario" role="list"></div>
     <div class="leyenda">
       <span><i style="background:var(--urgente)"></i>Cierra en 3 días o menos</span>
-      <span><i style="background:var(--pronto)"></i>De 4 a 7 días</span>
-      <span><i style="background:var(--acento)"></i>Más de 7 días</span>
+      <span><i style="background:var(--pronto)"></i>De 4 a 6 días</span>
+      <span><i style="background:var(--acento)"></i>7 días o más</span>
       <span><i style="background:var(--acento);box-shadow:inset 0 0 0 2px rgba(255,255,255,.65)"></i>Con borde claro: nueva</span>
     </div>
   </div>
@@ -240,6 +240,14 @@ dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
       <select id="f-region-op" aria-label="Filtrar por región" class="sel-filtro-region"></select>
       <input type="search" id="q-op" placeholder="Buscar por nombre, organismo o comuna" aria-label="Buscar oportunidades">
       <select id="f-org-op" aria-label="Filtrar por organismo"><option value="">Todos los organismos</option></select>
+      <select id="f-plazo" aria-label="Filtrar por días al cierre">
+        <option value="">Cualquier plazo</option>
+        <option value="0-3">Cierran en 0 a 3 días</option>
+        <option value="4-6">Cierran en 4 a 6 días</option>
+        <option value="7-15">Cierran en 7 a 15 días</option>
+        <option value="16-30">Cierran en 16 a 30 días</option>
+        <option value="31-9999">Cierran en más de 30 días</option>
+      </select>
       <select id="orden-op" aria-label="Ordenar">
         <option value="cierre">Cierran primero</option>
         <option value="monto">Mayor monto estimado</option>
@@ -404,7 +412,7 @@ function prepararRegiones(){
 const abiertas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 5 && fecha(l.cierre) && fecha(l.cierre) >= HOY && enRegion(l));
 const adjudicadas = () => (DATOS.licitaciones || []).filter(l => l.estado_cod === 8 && enRegion(l));
 const esNueva = l => { const p = fecha(l.primera_vez); return p && (HOY - p) < 864e5; };
-const nivel = d => d <= 3 ? "u" : d <= 7 ? "p" : "ok";
+const nivel = d => d <= 3 ? "u" : d <= 6 ? "p" : "ok";
 
 function todo(){ pintarFranja(); pintarOportunidades(); pintarReferencias(); pintarCompetidores(); pintarCartera(); cuentas(); }
 function cuentas(){
@@ -480,7 +488,8 @@ function filtrarOportunidades(){
     (!q || norm(`${l.nombre} ${l.organismo} ${l.unidad} ${l.comuna} ${l.codigo}`).includes(q)) &&
     (!org || l.organismo === org) &&
     (!$("#solo-nuevas").checked || esNueva(l)) &&
-    (!$("#con-visita").checked || l.visita));
+    (!$("#con-visita").checked || l.visita) &&
+    enPlazo(diasHasta(fecha(l.cierre))));
   ls.sort(orden === "monto" ? (a,b) => (b.monto_estimado||0) - (a.monto_estimado||0)
         : orden === "nuevas" ? (a,b) => String(b.primera_vez).localeCompare(String(a.primera_vez))
         : (a,b) => fecha(a.cierre) - fecha(b.cierre));
@@ -509,7 +518,11 @@ function filtrarOportunidades(){
     </article>`;
   }).join("") : `<div class="vacio"><h3>Sin resultados</h3>Prueba con otra búsqueda o quita filtros. Si la lista sigue vacía, amplía las palabras clave en <code>config.json</code>.</div>`;
 }
-["q-op","f-org-op","orden-op","solo-nuevas","con-visita"].forEach(id => $("#"+id).addEventListener("input", filtrarOportunidades));
+function enPlazo(d){
+  const v = $("#f-plazo").value; if (!v) return true;
+  const [a, b] = v.split("-").map(Number); return d >= a && d <= b;
+}
+["q-op","f-org-op","f-plazo","orden-op","solo-nuevas","con-visita"].forEach(id => $("#"+id).addEventListener("input", filtrarOportunidades));
 document.addEventListener("click", e => { const b = e.target.closest("[data-agregar]"); if (b) agregarCartera(b.dataset.agregar); });
 
 /* ============ referencias ============ */
